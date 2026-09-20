@@ -1,0 +1,11 @@
+{
+  "description": "Order B, messy delivery: item 1 correct; item 2 wrong-but-similar SKU (WGT-X200 instead of WGT-X100); item 3 has an extra physical unit (2 delivered, 1 ordered); item 4 label obscured in every photo; item 5 never appears in any photo.",
+  "row_count": 5,
+  "rows": [
+    {"row_number": 1, "status": "confirmed", "found_qty": 1},
+    {"row_number": 2, "status": "identity_mismatch", "found_qty": 0},
+    {"row_number": 3, "status": "quantity_mismatch", "found_qty": 2},
+    {"row_number": 4, "status": "unverified", "found_qty": 0},
+    {"row_number": 5, "status": "unverified", "found_qty": 0}
+  ]
+}

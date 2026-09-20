@@ -1,0 +1,10 @@
+{
+  "order": "ORD-A-1001",
+  "boxes": [
+    {"position_tag": "POS-1", "sku_label": "BRK-2200",   "label_obscured": false, "appears_in": ["photo1", "photo2", "photo3"]},
+    {"position_tag": "POS-2", "sku_label": "WGT-X100",   "label_obscured": false, "appears_in": ["photo1", "photo2", "photo3"]},
+    {"position_tag": "POS-3", "sku_label": "CBL-USB-1M", "label_obscured": false, "appears_in": ["photo1", "photo2", "photo3"]}
+  ],
+  "not_delivered": [],
+  "note": "Edit appears_in to match the photos you actually took. Every box must show its tag in every photo it appears in."
+}

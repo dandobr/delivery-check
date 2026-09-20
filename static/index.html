@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delivery Verification</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1c1e21; --muted:#5f6670; --line:#e3e6ea;
+          --ok:#1c7c3f; --okbg:#e3f5e9; --warn:#9a5b00; --warnbg:#fff2d6; --bad:#b3261e; --badbg:#fde7e5; --grey:#4a5058; --greybg:#eceef1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:18px; }
+  form .row { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
+  label { display:block; font-weight:600; font-size:13px; margin-bottom:6px; }
+  input[type=file] { font-size:13px; }
+  button { background:#1f4fd8; color:#fff; border:0; border-radius:8px; padding:10px 18px; font-size:15px; font-weight:600; cursor:pointer; }
+  button[disabled] { opacity:.5; cursor:default; }
+  button.secondary { background:#fff; color:#1f4fd8; border:1px solid #1f4fd8; padding:6px 10px; font-size:13px; }
+  .hint { font-size:13px; color:var(--muted); margin-top:8px; }
+  .err { background:var(--badbg); color:var(--bad); border-radius:8px; padding:10px 12px; margin-top:12px; white-space:pre-wrap; }
+  .status { margin-top:12px; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; vertical-align:top; padding:10px 8px; border-top:1px solid var(--line); }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border-top:0; }
+  .badge { display:inline-block; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .badge.confirmed { background:var(--okbg); color:var(--ok); }
+  .badge.identity_mismatch { background:var(--badbg); color:var(--bad); }
+  .badge.quantity_mismatch { background:var(--warnbg); color:var(--warn); }
+  .badge.unverified { background:var(--greybg); color:var(--grey); }
+  .thumbs { display:flex; flex-wrap:wrap; gap:6px; }
+  .thumb { position:relative; }
+  .thumb canvas { width:120px; height:90px; object-fit:cover; border-radius:6px; border:1px solid var(--line); display:block; cursor:zoom-in; }
+  .thumb .cap { font-size:11px; color:var(--muted); text-align:center; margin-top:2px; }
+  .expl { font-size:14px; }
+  .action { margin-top:6px; font-size:13px; color:var(--grey); }
+  .summary { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; }
+  .summary div { background:var(--greybg); border-radius:8px; padding:8px 12px; font-size:14px; }
+  details summary { cursor:pointer; font-weight:600; }
+  .calls th, .calls td { padding:6px 8px; font-size:13px; }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size:12px; }
+  .photo-notes { font-size:13px; color:var(--muted); }
+  #lightbox { position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:9; cursor:zoom-out; }
+  #lightbox canvas { max-width:95vw; max-height:95vh; }
+  .fileList { font-size:13px; color:var(--muted); margin-top:4px; }
+  .clarify { background:var(--warnbg); border:1px solid #e8c37a; color:var(--warn); border-radius:10px; padding:14px 16px; margin-bottom:18px; font-size:15px; }
+  .clarify b { display:block; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Delivery photos vs. packing list</h1>
+  <p class="sub">Upload the packing list (PDF) and up to 3 delivery photos. Every row gets a status with a cited photo region. There is no "missing" status: an item that isn't visible is <em>unverified</em>, never assumed absent.</p>
+
+  <div class="card">
+    <form id="form">
+      <div class="row">
+        <div>
+          <label for="pdf">Packing list (PDF)</label>
+          <input id="pdf" type="file" accept="application/pdf" required>
+        </div>
+        <div>
+          <label for="photos">Delivery photos (1–3, JPG/PNG)</label>
+          <input id="photos" type="file" accept="image/*" multiple>
+          <div class="fileList" id="fileList"></div>
+        </div>
+        <div><button id="go" type="submit">Verify delivery</button></div>
+      </div>
+      <div class="hint">Capture convention: every item carries a position tag (POS-1 … POS-5) next to its product label, visible in every photo it appears in. Objects are counted by tag, so the same box in two photos is counted once.</div>
+      <div class="status" id="status"></div>
+      <div class="err" id="error" hidden></div>
+    </form>
+  </div>
+
+  <div id="results" hidden>
+    <div class="clarify" id="clarify" hidden></div>
+    <div class="card">
+      <div class="summary" id="summary"></div>
+      <table id="table">
+        <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Status</th><th>Evidence</th><th>Explanation</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card" id="extras" hidden>
+      <strong>Other tagged objects seen</strong> (not attributed to any row)
+      <table id="extraTable"><thead><tr><th>Tag</th><th>Kind</th><th>Evidence</th><th>Note</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card" id="photoNotes" hidden></div>
+    <div class="card" id="footer">
+      <div class="summary" id="totals"></div>
+      <details>
+        <summary>Per-call breakdown</summary>
+        <table class="calls" id="calls"><thead><tr><th>Purpose</th><th>Model</th><th>Input tok</th><th>Output tok</th><th>Cache read</th><th>Time</th><th>Cost</th></tr></thead><tbody></tbody></table>
+        <div class="hint" id="pricing"></div>
+      </details>
+    </div>
+  </div>
+</main>
+<div id="lightbox"><canvas id="lightCanvas"></canvas></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let photoFiles = [];          // File objects in upload order (photo1..photo3)
+const images = {};            // photo_id -> HTMLImageElement
+
+$('#photos').addEventListener('change', (e) => {
+  photoFiles = Array.from(e.target.files).slice(0, 3);
+  renderFileList();
+});
+function renderFileList() {
+  $('#fileList').textContent = photoFiles.length ? photoFiles.map((f, i) => `photo${i + 1}: ${f.name}`).join(' · ') : '';
+}
+
+$('#form').addEventListener('submit', (e) => { e.preventDefault(); run(); });
+
+async function run() {
+  const pdf = $('#pdf').files[0];
+  $('#error').hidden = true;
+  if (!pdf) return showError('Choose a packing list PDF.');
+  if (!photoFiles.length) return showError('Choose at least one delivery photo.');
+  if (photoFiles.length > 3) return showError('At most 3 photos.');
+
+  const fd = new FormData();
+  fd.append('packing_list', pdf);
+  photoFiles.forEach((f) => fd.append('photos', f));
+
+  $('#go').disabled = true;
+  $('#status').textContent = `Analysing ${photoFiles.length} photo(s) and the packing list… (typically 15–60 s)`;
+  const t0 = performance.now();
+  try {
+    const res = await fetch('/api/verify', { method: 'POST', body: fd });
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    if (!res.ok) throw new Error(body.detail || `HTTP ${res.status}`);
+    await loadImages();
+    render(body, (performance.now() - t0) / 1000);
+    $('#status').textContent = '';
+  } catch (err) {
+    showError(err.message);
+    $('#status').textContent = '';
+  } finally {
+    $('#go').disabled = false;
+  }
+}
+
+function showError(msg) { $('#error').textContent = msg; $('#error').hidden = false; }
+
+function loadImages() {
+  return Promise.all(photoFiles.map((file, i) => new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => { images[`photo${i + 1}`] = img; resolve(); };
+    img.onerror = () => resolve();
+    img.src = URL.createObjectURL(file);
+  })));
+}
+
+// Draw a photo with the cited region highlighted. crop=true zooms to the region with some padding.
+function drawEvidence(canvas, ev, crop) {
+  const img = images[ev.photo_id];
+  if (!img) return;
+  const [x0, y0, x1, y1] = ev.bbox;
+  const W = img.naturalWidth, H = img.naturalHeight;
+  let sx = 0, sy = 0, sw = W, sh = H;
+  if (crop) {
+    const pad = 0.08;
+    sx = Math.max(0, (x0 - pad) * W); sy = Math.max(0, (y0 - pad) * H);
+    sw = Math.min(W, (x1 + pad) * W) - sx; sh = Math.min(H, (y1 + pad) * H) - sy;
+  }
+  const scale = crop ? Math.min(1, 480 / Math.max(sw, sh)) : Math.min(1, 1400 / Math.max(sw, sh));
+  canvas.width = Math.round(sw * scale); canvas.height = Math.round(sh * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  ctx.lineWidth = Math.max(3, canvas.width / 150);
+  ctx.strokeStyle = '#ff2d55';
+  ctx.strokeRect((x0 * W - sx) * scale, (y0 * H - sy) * scale, (x1 - x0) * W * scale, (y1 - y0) * H * scale);
+  ctx.fillStyle = '#ff2d55';
+  ctx.font = `bold ${Math.max(12, canvas.width / 28)}px sans-serif`;
+  ctx.fillText(ev.position_tag || '', (x0 * W - sx) * scale + 4, Math.max(14, (y0 * H - sy) * scale - 4));
+}
+
+function thumbs(evidence) {
+  const wrap = document.createElement('div');
+  wrap.className = 'thumbs';
+  evidence.forEach((ev) => {
+    const t = document.createElement('div'); t.className = 'thumb';
+    const c = document.createElement('canvas');
+    drawEvidence(c, ev, true);
+    c.title = `${ev.photo_id} bbox ${ev.bbox.map((v) => v.toFixed(2)).join(', ')}`;
+    c.addEventListener('click', () => { drawEvidence($('#lightCanvas'), ev, false); $('#lightbox').style.display = 'flex'; });
+    const cap = document.createElement('div'); cap.className = 'cap';
+    cap.textContent = `${ev.photo_id} · ${ev.position_tag || ''}`;
+    t.append(c, cap); wrap.append(t);
+  });
+  if (!evidence.length) { wrap.textContent = '—'; wrap.className = 'photo-notes'; }
+  return wrap;
+}
+$('#lightbox').addEventListener('click', () => { $('#lightbox').style.display = 'none'; });
+
+const LABELS = { confirmed: 'Confirmed', identity_mismatch: 'Identity mismatch', quantity_mismatch: 'Quantity mismatch', unverified: 'Unverified' };
+
+function render(data, clientSeconds) {
+  $('#results').hidden = false;
+  const cl = $('#clarify');
+  cl.hidden = data.top_level_status !== 'needs_clarification';
+  if (!cl.hidden) cl.innerHTML = `<b>Cannot conclude anything from this input.</b>${esc(data.clarification_message)}`;
+  const c = data.status_counts;
+  $('#summary').innerHTML = `<div>Order: <b>${esc(data.order_reference || '—')}</b></div>
+    <div>${data.rows.length} rows</div><div>✅ ${c.confirmed} confirmed</div><div>❌ ${c.identity_mismatch} identity</div>
+    <div>⚠️ ${c.quantity_mismatch} quantity</div><div>❔ ${c.unverified} unverified</div>`;
+
+  const tb = $('#table tbody'); tb.innerHTML = '';
+  data.rows.forEach((r) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.row_number}</td><td><b>${esc(r.name)}</b><br><span class="mono">${esc(r.sku)}</span></td>
+      <td>${r.found_qty} / ${r.expected_qty}</td><td><span class="badge ${r.status}">${LABELS[r.status] || r.status}</span></td><td></td>
+      <td class="expl">${esc(r.explanation)}</td>`;
+    tr.children[4].append(thumbs(r.evidence));
+    if (r.status === 'unverified') {
+      const a = document.createElement('div'); a.className = 'action';
+      a.innerHTML = `<div>Suggested: ${esc(r.suggested_action || '')}</div>`;
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'secondary';
+      btn.textContent = photoFiles.length < 3 ? 'Upload another photo & re-verify' : 'Replace a photo & re-verify (3 max)';
+      btn.addEventListener('click', () => addPhotoAndRerun());
+      a.append(btn); tr.children[5].append(a);
+    }
+    tb.append(tr);
+  });
+
+  const ex = data.unattributed_objects || [];
+  $('#extras').hidden = !ex.length;
+  const et = $('#extraTable tbody'); et.innerHTML = '';
+  ex.forEach((u) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="mono">${esc(u.position_tag)}</td><td>${esc(u.kind.replace('_', ' '))}${u.sku ? ' · ' + esc(u.sku) : ''}</td><td></td><td class="expl">${esc(u.explanation)}</td>`;
+    tr.children[2].append(thumbs(u.evidence));
+    et.append(tr);
+  });
+
+  const notes = (data.photos || []).filter((p) => p.photo_notes);
+  $('#photoNotes').hidden = !notes.length;
+  $('#photoNotes').innerHTML = notes.map((p) => `<div class="photo-notes"><b>${esc(p.photo_id)}</b>: ${esc(p.photo_notes)}</div>`).join('');
+
+  const u = data.usage;
+  $('#totals').innerHTML = `<div>Processing time: <b>${u.total_seconds.toFixed(1)} s</b> server · ${clientSeconds.toFixed(1)} s end-to-end</div>
+    <div>Estimated cost: <b>$${u.total_cost_usd.toFixed(4)}</b></div>
+    <div>${u.total_input_tokens.toLocaleString()} in / ${u.total_output_tokens.toLocaleString()} out tokens · ${u.calls.length} calls</div>`;
+  const ct = $('#calls tbody'); ct.innerHTML = '';
+  u.calls.forEach((k) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(k.purpose)}</td><td class="mono">${esc(k.model)}</td><td>${k.input_tokens}</td><td>${k.output_tokens}</td><td>${k.cache_read_tokens}</td><td>${k.seconds.toFixed(2)} s</td><td>$${k.cost_usd.toFixed(5)}</td>`;
+    ct.append(tr);
+  });
+  $('#pricing').textContent = 'Pricing (USD per 1M tokens): ' + Object.entries(u.pricing_usd_per_mtok)
+    .map(([m, p]) => `${m}: $${p.input} in / $${p.output} out`).join(' · ') + '. Rates are a snapshot in pipeline/cost.py - verify before quoting.';
+}
+
+// "Upload another photo" affordance for unverified rows: pick a file, append (or replace the last), re-run.
+function addPhotoAndRerun() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.addEventListener('change', () => {
+    const f = inp.files[0]; if (!f) return;
+    if (photoFiles.length < 3) photoFiles.push(f); else photoFiles[2] = f;
+    renderFileList();
+    run();
+  });
+  inp.click();
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
+</script>
+</body>
+</html>

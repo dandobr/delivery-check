@@ -1,0 +1,10 @@
+{
+  "order": "ORD-A-1001",
+  "boxes": [
+    {"position_tag": null, "sku_label": "BRK-2200",   "label_obscured": false, "appears_in": ["photo1"], "note": "tag not visible"},
+    {"position_tag": null, "sku_label": "WGT-X100",   "label_obscured": false, "appears_in": ["photo1"], "note": "tag not visible"},
+    {"position_tag": null, "sku_label": "CBL-USB-1M", "label_obscured": false, "appears_in": ["photo1"], "note": "tag not visible"}
+  ],
+  "not_delivered": [],
+  "note": "All three items are physically present but no position tag is visible, so nothing may be counted."
+}

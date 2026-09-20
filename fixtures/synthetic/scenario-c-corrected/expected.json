@@ -1,0 +1,11 @@
+{
+  "description": "Order B re-photographed after the issues were fixed: right SKU for item 2, one unit of item 3, item 4 label visible, item 5 in frame.",
+  "row_count": 5,
+  "rows": [
+    {"row_number": 1, "status": "confirmed", "found_qty": 1},
+    {"row_number": 2, "status": "confirmed", "found_qty": 1},
+    {"row_number": 3, "status": "confirmed", "found_qty": 1},
+    {"row_number": 4, "status": "confirmed", "found_qty": 1},
+    {"row_number": 5, "status": "confirmed", "found_qty": 1}
+  ]
+}

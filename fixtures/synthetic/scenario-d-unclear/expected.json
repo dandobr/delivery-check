@@ -1,0 +1,10 @@
+{
+  "description": "Decline-to-conclude case: Order A packing list with photos in which NO position tags are visible (e.g. boxes photographed from the back, or tags removed). The product must not guess: top-level status needs_clarification, every row unverified with a request for another photo.",
+  "top_level_status": "needs_clarification",
+  "row_count": 3,
+  "rows": [
+    {"row_number": 1, "status": "unverified", "found_qty": 0},
+    {"row_number": 2, "status": "unverified", "found_qty": 0},
+    {"row_number": 3, "status": "unverified", "found_qty": 0}
+  ]
+}

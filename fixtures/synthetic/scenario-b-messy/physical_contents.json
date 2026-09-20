@@ -1,0 +1,12 @@
+{
+  "order": "ORD-B-1002",
+  "boxes": [
+    {"position_tag": "POS-1", "sku_label": "BRK-2200",   "label_obscured": false, "appears_in": ["photo1", "photo3"],          "note": "row 1, correct"},
+    {"position_tag": "POS-2", "sku_label": "WGT-X200",   "label_obscured": false, "appears_in": ["photo1"],                    "note": "delivered instead of row 2's WGT-X100 (wrong but similar)"},
+    {"position_tag": "POS-3", "sku_label": "CBL-USB-1M", "label_obscured": false, "appears_in": ["photo1", "photo2"],          "note": "row 3, unit 1"},
+    {"position_tag": "POS-4", "sku_label": "CBL-USB-1M", "label_obscured": false, "appears_in": ["photo2", "photo3"],          "note": "row 3, EXTRA unit (ordered 1)"},
+    {"position_tag": "POS-5", "sku_label": "FLT-HEPA-S", "label_obscured": true,  "appears_in": ["photo2", "photo3"],          "note": "row 4, SKU covered by tape in every photo"}
+  ],
+  "not_delivered": ["PSU-65W"],
+  "note": "Row 5 (PSU-65W) is physically absent but the app must report it unverified, never missing."
+}
