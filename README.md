@@ -131,6 +131,29 @@ model were unreliable on non-square images: in testing it sometimes divided x by
 `expected.json` lists per row the keys to assert (`status` at minimum, optionally `found_qty`), plus
 `row_count`. Only keys present are compared.
 
+## Reused components vs. work written for this project
+
+Reused, unmodified, via `requirements.txt`:
+
+| Component | Role here |
+|---|---|
+| `anthropic` (official Python SDK) | every model call, retries, error types |
+| `fastapi` + `uvicorn` + `python-multipart` | HTTP server, multipart upload handling |
+| `pdfplumber` | text extraction from the packing-list PDF |
+| `pillow` | EXIF rotation, downscaling, JPEG re-encoding of uploads |
+| `reportlab` | generating the label sheet and the sample packing lists |
+
+Written for this project (no framework, no starter template, no vendored code):
+
+- the whole pipeline: prompts, aggregation by position tag, the deterministic matcher, the
+  clarification rule, cost accounting (`pipeline/`)
+- the API layer (`main.py`) and the single-file frontend (`static/index.html`), vanilla JS, no build step
+- the test harness, offline tests, fixture consistency checker and kit generators (`scripts/`)
+- the test set: label sheet, two packing lists, four scenarios with recorded expected outcomes
+
+Nothing here is an existing product of mine repackaged; the repository was created from scratch for
+this brief.
+
 ## Known limitations / unfinished
 
 - **Not yet run against real photos.** I had no API key in the build environment, so the live
