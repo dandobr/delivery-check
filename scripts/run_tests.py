@@ -79,7 +79,7 @@ def main() -> int:
     root = Path(args.fixtures_dir)
     folders = sorted({p.parent for p in root.rglob("expected.json")} | {p.parent for p in root.rglob("packing_list.pdf")})
     if args.only:
-        folders = [f for f in folders if args.only in f.name]
+        folders = [f for f in folders if args.only in str(f.relative_to(root))]
     if not folders:
         print(f"No fixture folders found under {root}")
         return 1

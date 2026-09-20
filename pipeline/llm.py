@@ -79,7 +79,11 @@ def call_json(
     try:
         response = client().messages.create(**kwargs)
     except anthropic.BadRequestError as e:
-        # Some models reject structured outputs / effort - retry as plain JSON-in-text.
+        # Only if the *structured-output / effort* parameters were rejected, retry as plain
+        # JSON-in-text. Billing, auth and other 400s are re-raised untouched.
+        msg = str(e).lower()
+        if not any(k in msg for k in ("output_config", "output_format", "json_schema", "effort", "structured")):
+            raise
         log.warning("%s: structured request rejected (%s); retrying as plain text", purpose, e)
         kwargs.pop("output_config")
         kwargs["system"] = system + "\n\nRespond with ONLY a JSON object matching this JSON schema, no prose:\n" + json.dumps(schema)
