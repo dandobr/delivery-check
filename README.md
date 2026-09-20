@@ -31,6 +31,9 @@ python scripts/check_fixtures.py       # expected.json consistent with physical_
 
 Folders without `packing_list.pdf` or `photo1.jpg` are skipped with a message, not an error.
 
+Docker: `docker build -t delivery-check . && docker run -p 8000:8000 -e ANTHROPIC_API_KEY=... delivery-check`.
+`GET /health` returns `{"status":"ok"}` for host health checks.
+
 ## Capture convention (read before taking photos)
 
 **Every physical item carries a small printed position tag (`POS-1` … `POS-5`), separate from its
@@ -85,8 +88,10 @@ single `PRICING` dict at the top of `pipeline/cost.py`. Structured outputs (`out
 with a JSON schema) are used for every call so responses are schema-valid JSON. Stage 1 and the
 per-photo vision passes run concurrently in threads.
 
-Images are EXIF-rotated and downscaled to a 1568 px long edge before upload; bounding boxes are
-fractions of width/height so they map back to the original file in the browser.
+Images are EXIF-rotated and downscaled to a 1568 px long edge before upload. The vision prompt
+states the exact pixel size and asks for pixel bounding boxes, which the code converts to fractions
+of width/height (so they map back to the original file in the browser). Fractions straight from the
+model were unreliable on non-square images: in testing it sometimes divided x by the height.
 
 ## Output shape (`POST /api/verify`)
 

@@ -26,12 +26,9 @@ DETECTIONS_SCHEMA = {
                     "label_readable": {"type": "boolean"},
                     "sku_read": {"type": ["string", "null"]},
                     "name_read": {"type": ["string", "null"]},
-                    "bbox": {
-                        "type": "array",
-                        "items": {"type": "number"},
-                        "minItems": 4,
-                        "maxItems": 4,
-                    },
+                    # [x0, y0, x1, y1]; length is validated in code because structured outputs
+                    # reject minItems/maxItems other than 0/1.
+                    "bbox": {"type": "array", "items": {"type": "number"}},
                     "confidence": {"type": "number"},
                     "notes": {"type": ["string", "null"]},
                 },
@@ -54,7 +51,7 @@ Your job: list EVERY position tag visible in this photo, one detection per tag. 
 - Find the product/SKU label on the SAME physical item that carries that tag.
   - If the SKU code is clearly legible, set label_readable=true and copy sku_read exactly as printed (keep dashes, digits and letters exact) and name_read as printed.
   - If the label is absent, obscured, out of focus, cut off, or you are not sure of every character of the SKU, set label_readable=false and sku_read=null. NEVER guess a SKU. A near-miss guess is worse than no reading.
-- bbox: [x0, y0, x1, y1] as fractions of image width/height (0-1) tightly enclosing the whole physical item (box/package), not just the tag.
+- bbox: [x0, y0, x1, y1] in PIXELS of the supplied image (the user message states its exact width and height), tightly enclosing the whole physical item (box/package), not just the tag. x runs left to right (0..width), y top to bottom (0..height).
 - confidence: 0-1 for the overall reading (tag identity and SKU read).
 - notes: anything relevant (e.g. "label partly covered by tape", "item partially out of frame").
 
@@ -77,8 +74,22 @@ def prepare_image(data: bytes) -> tuple[bytes, str, int, int]:
     return out.getvalue(), "image/jpeg", img.size[0], img.size[1]
 
 
-def _clamp_bbox(b: list) -> list[float]:
-    vals = [max(0.0, min(1.0, float(v))) for v in b[:4]]
+def _to_fraction_bbox(b: list, w: int, h: int) -> list[float]:
+    """Pixel [x0,y0,x1,y1] from the model -> clamped fractions of width/height.
+
+    Pixel coordinates are requested because models often mis-normalise fractions on
+    non-square images (dividing x by the height). If the values already look like
+    fractions (all <= 1), they are used as-is.
+    """
+    if not isinstance(b, list) or len(b) < 4:
+        return [0.0, 0.0, 1.0, 1.0]  # whole image: still a citation, just an imprecise one
+    try:
+        vals = [float(v) for v in b[:4]]
+    except (TypeError, ValueError):
+        return [0.0, 0.0, 1.0, 1.0]
+    if max(vals) > 1.0:
+        vals = [vals[0] / w, vals[1] / h, vals[2] / w, vals[3] / h]
+    vals = [max(0.0, min(1.0, v)) for v in vals]
     x0, y0, x1, y1 = vals
     if x1 < x0:
         x0, x1 = x1, x0
@@ -96,7 +107,8 @@ def analyse_photo(photo_id: str, data: bytes, tracker: CostTracker) -> dict:
         system=SYSTEM,
         content=[
             {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-            {"type": "text", "text": f"This is photo '{photo_id}'. List every visible position tag as instructed."},
+            {"type": "text", "text": f"This is photo '{photo_id}'. The image is exactly {w} pixels wide and {h} pixels high. "
+                                     f"List every visible position tag as instructed, with bbox in pixel coordinates."},
         ],
         schema=DETECTIONS_SCHEMA,
         tracker=tracker,
@@ -114,7 +126,7 @@ def analyse_photo(photo_id: str, data: bytes, tracker: CostTracker) -> dict:
             "label_readable": readable,
             "sku_read": (d.get("sku_read") or "").strip() if readable else None,
             "name_read": (d.get("name_read") or None),
-            "bbox": _clamp_bbox(d.get("bbox") or [0, 0, 1, 1]),
+            "bbox": _to_fraction_bbox(d.get("bbox"), w, h),
             "confidence": float(d.get("confidence") or 0.0),
             "notes": d.get("notes"),
         })

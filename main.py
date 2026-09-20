@@ -24,6 +24,11 @@ def index():
     return FileResponse(STATIC / "index.html")
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/api/verify")
 async def api_verify(packing_list: UploadFile = File(...), photos: list[UploadFile] = File(...)):
     if not photos or len(photos) > MAX_PHOTOS:

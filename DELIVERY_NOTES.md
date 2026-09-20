@@ -47,6 +47,33 @@ _Pick one row from scenario B and show the check end to end. Example structure:_
 3. Opened the photos, looked at the highlighted regions in the UI: both boxes carry `CBL-USB-1M` labels and distinct tags. Conclusion correct.
 4. Checked the one thing the model could have got wrong: `sku_read` string for each detection matches the printed label character for character (`actual.json` → `objects[].evidence[].sku_read`).
 
+## Measured on synthetic fixtures (2026-09-20, live API, before real photos)
+
+Rendered cartoon photos from `scripts/make_synthetic_photos.py`, run with
+`python scripts/run_tests.py --only synthetic --save`. All 4 scenarios passed field by field.
+
+| Scenario (synthetic) | Calls | Input tok | Output tok | Server time | Cost | Top-level | Row statuses |
+|---|---|---|---|---|---|---|---|
+| scenario-a-normal | 4 | 9,525 | 845 | 3.9 s | $0.0263 | complete | confirmed, confirmed, confirmed |
+| scenario-b-messy | 5 | 10,539 | 1,346 | 6.5 s | $0.0330 | complete | confirmed, identity_mismatch, quantity_mismatch, unverified, unverified |
+| scenario-c-corrected | 4 | 9,561 | 1,063 | 3.5 s | $0.0282 | complete | confirmed, confirmed, confirmed, confirmed, confirmed |
+| scenario-d-unclear | 2 | 3,597 | 324 | 3.5 s | $0.0092 | needs_clarification | unverified, unverified, unverified |
+
+Three-photo delivery average: **4.6 s** server processing, **$0.0291** per delivery
+(claude-sonnet-5 at $2/$10 per MTok, claude-haiku-4-5 at $1/$5 per MTok, no cache hits, no retries billed).
+Per-photo Sonnet vision call: ~2.7k input tokens (one 1400x1000 JPEG + prompt), 350-450 output tokens, ~4 s.
+
+What failed and was fixed during this run:
+- Structured-output schema rejected `minItems/maxItems` on the bbox array -> every vision call fell back to a
+  second plain-text request (double cost). Removed the constraint; bbox length is validated in code.
+- Bounding boxes returned as fractions were mis-normalised on non-square images in 2 of 3 photos
+  (x divided by height, so the rightmost box came back as x0=0.98). Switched to pixel coordinates with the
+  image size stated in the prompt; boxes are now within 1% of the rendered positions in all photos.
+- Statuses, dedup by tag, identity judgment (WGT-X200 -> row 2) and the obscured-label hint were correct
+  on the first live run without prompt changes.
+
+_Real-photo measurements go in the tables above once the physical kit has been photographed._
+
 ## Measured time-to-useful-result
 
 | Scenario | Server processing (from `usage.total_seconds`) | End-to-end in browser | Notes |
