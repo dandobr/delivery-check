@@ -1,5 +1,12 @@
 # Delivery photos vs. packing list
 
+**Live demo: https://delivery-check.onrender.com** (free tier: the first request after
+15 minutes idle takes 30-60 s to wake the container)
+
+**Start here:** [DELIVERY_NOTES.md](DELIVERY_NOTES.md) has the measured results, speed and
+cost per delivery, what failed, and a worked example of checking a model output by hand.
+The test material is in [`fixtures/`](fixtures/), one folder per scenario.
+
 A working prototype that takes a one-page packing list (PDF) and up to three delivery photos and
 returns, per packing-list row, one of **confirmed / identity mismatch / quantity mismatch /
 unverified**, each with a citation to the row number and the photo + region that supports it.
@@ -36,8 +43,9 @@ Docker: `docker build -t delivery-check . && docker run -p 8000:8000 -e ANTHROPI
 
 ## Capture convention (read before taking photos)
 
-**Every physical item carries a small printed position tag (`POS-1` … `POS-5`), separate from its
-product/SKU label, and the tag must be visible in every photo the item appears in.**
+**Every physical item carries a small printed numbered position tag (`POS-1`, `POS-2`, …),
+separate from its product/SKU label, and the tag must be visible in every photo the item
+appears in.**
 
 - Counting groups detections by position tag, not by photo. The same tag seen in two photos is
   one object, so nothing is double-counted.
@@ -48,7 +56,10 @@ product/SKU label, and the tag must be visible in every photo the item appears i
   instead.
 
 Tags are physical-object identities only. The code does **not** assume `POS-n` corresponds to
-packing-list row `n`; the SKU label is what links an object to a row.
+packing-list row `n`, and there may be more tags than rows: the SKU label is what links an object
+to a row. In `scenario-b-messy` the extra, unordered cable carries `POS-6`. A tag is only an
+identity when its number is legible; a tag that is present but unreadable is reported as a region
+to re-photograph and is never counted.
 
 ## Behavioural rules baked into the matcher
 
@@ -110,7 +121,7 @@ model were unreliable on non-square images: in testing it sometimes divided x by
 
 - `samples/label_sheet.pdf` – printable A4 sheet: 5 product labels (rows 1–5), a second copy of row
   3's label (needed for scenario B's extra unit), the alternate `WGT-X200` label for row 2, and
-  position tags `POS-1`…`POS-5`. Edit product names/SKUs in `scripts/kit.py`, then rerun
+  position tags `POS-1`…`POS-7` (more tags than rows, so extra or unexpected units can be tagged too). Edit product names/SKUs in `scripts/kit.py`, then rerun
   `scripts/make_label_sheet.py` and `scripts/make_packing_lists.py`.
 - `samples/packing_list_order_A.pdf` – 3-item order (scenario A). `samples/packing_list_order_B.pdf`
   – 5-item order (scenarios B and C). Copies are already placed in the fixture folders.
