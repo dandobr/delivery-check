@@ -70,11 +70,15 @@ changes, including a label photographed blank-side-up and two identical SKUs on 
 
 | Activity | Time |
 |---|---|
-| Building the prototype (AI-generated, supervised) | _…_ |
-| Printing labels, assembling objects, photographing | _…_ |
-| Running, debugging, fixing the four defects above | _…_ |
-| Writing up and recording the video | _…_ |
-| **Total** | _…_ |
+| Building the prototype with Claude Code, supervised | 3 h |
+| Printing labels, preparing the objects, photographing | 1 h |
+| Running the scenarios, debugging, fixing the four defects above | 1 h |
+| Deploying, write-up and video | 1 h |
+| **Total** | **6 h** |
+
+Within the eight-hour budget the brief suggests. The largest single saving was generating the test kit:
+the label sheet and both packing lists come from `scripts/`, so re-cutting the test set after changing a
+product name is a one-command job rather than an afternoon.
 
 ## AI tools and models used
 
