@@ -181,3 +181,9 @@ here: *(none yet)*.
 
 Warehouse integrations, automatic supplier complaints, accounts/logins, multi-language, native
 packaging.
+
+## Test photo metadata
+
+EXIF metadata, including GPS coordinates, has been stripped from every photograph in
+`fixtures/`. Image orientation was baked in first, so the files render identically and
+the pipeline (which applies `ImageOps.exif_transpose`) is unaffected.

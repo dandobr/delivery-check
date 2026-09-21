@@ -1,0 +1,87 @@
+WHAT IT DOES
+Upload a one-page packing list (PDF) and up to three delivery photos. For every
+packing-list row the app returns confirmed, identity mismatch, quantity mismatch,
+or unverified, each citing the row number plus a photo id and a highlighted region.
+There is deliberately no "missing" status: an item that cannot be seen is an
+evidence gap, not proof of absence.
+
+CAPTURE CONVENTION
+Every item carries a numbered position tag (POS-1, POS-2, ...) next to its product
+label. Counting groups detections by tag, not by photo, so the same box seen in two
+photos is one object and is never double-counted. An item with no legible tag in any
+photo cannot be counted and is reported unverified.
+
+TESTS (all outcomes written down before testing; fixtures/ in the repo)
+A normal        3 items, all correct, plus one item not on the list  -> 3 confirmed,
+                the off-list item reported separately, not attributed to a row
+B messy         wrong-but-similar SKU, an extra unit, a label face down, one item
+                absent -> confirmed / identity mismatch / quantity mismatch 2 of 1 /
+                unverified / unverified
+C corrected     same order re-photographed after the fixes -> 5 confirmed
+D unclear       one photo out of focus -> refuses to conclude, asks for a focused
+                re-shoot, all rows unverified
+Plus a rendered copy of all four as a cheap deterministic second set.
+scripts/run_tests.py calls the same function as the web endpoint and diffs field by
+field. 8 scenarios, 0 failed.
+
+SPEED (measured, three photos per delivery, server processing)
+A 6.6 s   B 11.2 s   C 5.5 s   D 3.7 s   average of A-C 7.8 s
+Hosted end-to-end from the browser: about 9 s warm. The free hosting tier sleeps
+after 15 minutes idle; the first request then takes 30-60 s to wake the container.
+
+COST (measured per delivery)
+About 3.5 cents. A $0.0328, B $0.0396, C $0.0333, D $0.0094.
+Pricing assumptions, USD per million tokens, from a single PRICING constant in
+pipeline/cost.py, checked on anthropic.com/pricing: claude-sonnet-5 $2 in / $10 out,
+claude-haiku-4-5 $1 in / $5 out. Cost is dominated by image input: about 3,500 input
+tokens per photo regardless of content, so photo count drives the bill more than row
+count. Counted: every model call including the identity judgment. Not billed and not
+counted: SDK transport retries on failed requests (none occurred). No speech, OCR or
+other paid intermediary is used.
+HOSTING, SEPARATE: Render free tier, $0/month, one web service, no database. A
+non-sleeping instance is $7/month. Free credits are not zero operating cost; the
+figures above are what the API bills once credits run out.
+
+AI TOOLS AND MODELS
+Built with Claude Code (Claude Fable 5.1 and Claude Opus 5) in one session; the whole
+repository was generated that way and supervised by me. README lists reused libraries
+(anthropic SDK, FastAPI, pdfplumber, Pillow, reportlab) versus what was written for
+this brief.
+In the product, via the official anthropic Python SDK with structured outputs:
+  claude-haiku-4-5-20251001  packing list text -> structured rows        1 call
+  claude-sonnet-5            read tags and SKU labels in one photo       1 per photo
+  claude-sonnet-5            judge if an unmatched SKU is a row variant  0 or 1 call
+Matching itself is deterministic Python, not an LLM, so every status is auditable.
+
+HOW I CHECKED AN AI OUTPUT BY HAND
+Scenario B row 3 came back quantity mismatch, 2 of 1, citing POS-3 in two photos and
+POS-6 in one. I opened actual.json: POS-3 has two evidence entries and POS-6 has one,
+so three sightings collapsed into two objects, which is the anti-double-counting rule
+working. I opened both photos, confirmed each object carries a CBL-USB-1M label and a
+different position tag, and compared the model's SKU string against the printed label
+character by character. I ran the same check on row 4, where the label was face down:
+the model returned label_readable false with no SKU rather than guessing from the
+visible product name.
+
+WHAT FAILED
+Four defects found and fixed during the build, all in the git history: a structured-
+output schema constraint that silently doubled cost via a retry; bounding boxes
+mis-scaled on non-square images; a retry path that swallowed billing and auth errors;
+and the label sheet running out of position tags. A fifth was found by the real
+blurred photo: the vision model correctly refused to guess the tag digits and returned
+a placeholder, which my aggregation wrongly accepted as an object identity. Tags are
+now identities only when their number is legible.
+Scenarios A, B and C passed on the first live run with no prompt changes.
+
+TIME SPENT
+6 hours total: 3 building, 1 preparing and photographing the physical test kit,
+1 running and debugging, 1 deploying and writing up.
+
+KNOWN LIMITATIONS
+Scanned image-only PDFs are rejected (no OCR). iPhone HEIC photos must be converted
+before upload. Bounding boxes are approximate. Single process, in memory, no auth.
+
+WHAT I WOULD DO NEXT
+Cut per-photo cost by cropping to detected tag regions before the full read. Let the
+user draw a box and ask what it says instead of re-uploading a whole photo. Accept
+HEIC directly. Surface disagreement when two photos read the same tag differently.
