@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 fixtures/**/actual.json
 .env
+SUBMISSION_FORM.txt
