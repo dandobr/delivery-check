@@ -8,10 +8,18 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from pipeline.env import credentials_present, load_dotenv
 from pipeline.llm import LLMError
 from pipeline.verify import MAX_PHOTOS, verify_delivery
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+load_dotenv()
+if not credentials_present():
+    logging.warning(
+        "No ANTHROPIC_API_KEY found in the environment or in a .env file at the project root. "
+        "The app will start, but every verification will fail with an authentication error."
+    )
 
 app = FastAPI(title="Delivery photo vs packing list")
 STATIC = Path(__file__).parent / "static"
