@@ -116,6 +116,7 @@ model were unreliable on non-square images: in testing it sometimes divided x by
   – 5-item order (scenarios B and C). Copies are already placed in the fixture folders.
 - `fixtures/scenario-{a-normal,b-messy,c-corrected}/` – drop `photo1.jpg`, `photo2.jpg`,
   `photo3.jpg` into each. `expected.json` is already there; edit it if your kit differs.
+- `fixtures/scenario-a-normal/`, `scenario-b-messy/`, `scenario-c-corrected/` – real photographs of household objects carrying the printed labels. Scenario A also contains one item that is not on the packing list, which must not be attributed to any row.
 - `fixtures/scenario-d-unclear/` – the "ask for clarification / decline to conclude" input: Order A
   photographed with no position tag visible. Expected: `top_level_status: needs_clarification`, all
   rows unverified, a banner asking for a re-shoot. A PDF with no extractable text is the second

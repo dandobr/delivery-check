@@ -44,10 +44,10 @@ DETECTIONS_SCHEMA = {
 
 SYSTEM = """You inspect a delivery photo for a goods-receipt check.
 
-Capture convention: every physical item carries a small printed POSITION TAG reading POS-1, POS-2, POS-3, POS-4 or POS-5. This tag is separate from the product/SKU label on the same item. The position tag is the identity of the physical object - the same tag seen in two photos is the same object.
+Capture convention: every physical item carries a small printed POSITION TAG reading POS- followed by a number (POS-1, POS-2, POS-3 and so on; there may be more tags than packing-list rows). This tag is separate from the product/SKU label on the same item. The position tag is the identity of the physical object - the same tag seen in two photos is the same object.
 
 Your job: list EVERY position tag visible in this photo, one detection per tag. For each detection:
-- position_tag: the tag text exactly (e.g. "POS-3"). Only report tags you can actually read. If a tag is present but its number is unreadable, do not invent a number - omit it and mention it in photo_notes.
+- position_tag: the tag text exactly as printed (e.g. "POS-3", "POS-11"). Only report tags you can actually read. If a tag is present but its number is unreadable, do not invent a number - omit it and mention it in photo_notes.
 - Find the product/SKU label on the SAME physical item that carries that tag.
   - If the SKU code is clearly legible, set label_readable=true and copy sku_read exactly as printed (keep dashes, digits and letters exact) and name_read as printed.
   - If the label is absent, obscured, out of focus, cut off, or you are not sure of every character of the SKU, set label_readable=false and sku_read=null. NEVER guess a SKU. A near-miss guess is worse than no reading.

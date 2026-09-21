@@ -27,7 +27,7 @@ def decide_clarification(rows: list[dict], objects: list[dict], photo_results: l
                 "(a one-page text PDF with SKU, description and quantity per line).")
     if not objects:
         notes = "; ".join(f"{p['photo_id']}: {p['photo_notes']}" for p in photo_results if p.get("photo_notes"))
-        return ("No position tags (POS-1 ... POS-5) were detected in any photo, so nothing can be counted "
+        return ("No position tags (POS-1, POS-2, ...) were detected in any photo, so nothing can be counted "
                 "or matched. Please re-photograph the delivery with each item's position tag and SKU label "
                 "facing the camera." + (f" Model notes: {notes}" if notes else ""))
     return None

@@ -17,7 +17,8 @@ PRODUCTS = [
 # The "wrong-but-similar" SKU delivered instead of row 2 in scenario B.
 ALTERNATE_FOR_ROW_2 = {"sku": "WGT-X200", "name": "Widget X200"}
 
-POSITION_TAGS = ["POS-1", "POS-2", "POS-3", "POS-4", "POS-5"]
+# Seven tags: five rows plus spares, because an extra/unexpected unit also needs its own tag.
+POSITION_TAGS = ["POS-1", "POS-2", "POS-3", "POS-4", "POS-5", "POS-6", "POS-7"]
 
 # Order A = first three products, qty 1 each. Order B = all five, qty 1 each.
 ORDER_A = {"ref": "ORD-A-1001", "rows": [dict(p, qty=1) for p in PRODUCTS[:3]]}

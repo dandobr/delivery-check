@@ -18,7 +18,7 @@ from reportlab.pdfgen import canvas  # noqa: E402
 OUT = Path(__file__).resolve().parent.parent / "samples" / "label_sheet.pdf"
 
 LABEL_W, LABEL_H = 90 * mm, 35 * mm
-TAG_W, TAG_H = 42 * mm, 42 * mm
+TAG_W, TAG_H = 42 * mm, 30 * mm
 MARGIN_X, TOP = 12 * mm, 285 * mm
 
 
@@ -46,9 +46,9 @@ def pos_tag(c, x, y, tag):
     c.setLineWidth(1.2)
     c.rect(x, y, TAG_W, TAG_H)
     c.setFont("Helvetica", 8)
-    c.drawCentredString(x + TAG_W / 2, y + TAG_H - 7 * mm, "POSITION TAG")
-    c.setFont("Helvetica-Bold", 30)
-    c.drawCentredString(x + TAG_W / 2, y + 12 * mm, tag)
+    c.drawCentredString(x + TAG_W / 2, y + TAG_H - 6 * mm, "POSITION TAG")
+    c.setFont("Helvetica-Bold", 26)
+    c.drawCentredString(x + TAG_W / 2, y + 7 * mm, tag)
 
 
 def main():
@@ -76,7 +76,7 @@ def main():
     y = TOP - 12 * mm - TAG_H
     for tag in POSITION_TAGS:
         pos_tag(c, x, y, tag)
-        y -= TAG_H + 3 * mm
+        y -= TAG_H + 2 * mm
 
     c.showPage()
     c.save()

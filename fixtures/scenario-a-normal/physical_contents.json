@@ -1,10 +1,43 @@
 {
   "order": "ORD-A-1001",
   "boxes": [
-    {"position_tag": "POS-1", "sku_label": "BRK-2200",   "label_obscured": false, "appears_in": ["photo1", "photo2", "photo3"]},
-    {"position_tag": "POS-2", "sku_label": "WGT-X100",   "label_obscured": false, "appears_in": ["photo1", "photo2", "photo3"]},
-    {"position_tag": "POS-3", "sku_label": "CBL-USB-1M", "label_obscured": false, "appears_in": ["photo1", "photo2", "photo3"]}
+    {
+      "position_tag": "POS-1",
+      "sku_label": "BRK-2200",
+      "label_obscured": false,
+      "appears_in": [
+        "photo3"
+      ]
+    },
+    {
+      "position_tag": "POS-2",
+      "sku_label": "WGT-X100",
+      "label_obscured": false,
+      "appears_in": [
+        "photo1",
+        "photo2",
+        "photo3"
+      ]
+    },
+    {
+      "position_tag": "POS-3",
+      "sku_label": "CBL-USB-1M",
+      "label_obscured": false,
+      "appears_in": [
+        "photo1"
+      ]
+    },
+    {
+      "position_tag": "POS-4",
+      "sku_label": "FLT-HEPA-S",
+      "label_obscured": false,
+      "appears_in": [
+        "photo1",
+        "photo2"
+      ],
+      "note": "present in the shot but NOT on Order A - the app must report it as an unexpected SKU, not attribute it to a row"
+    }
   ],
   "not_delivered": [],
-  "note": "Edit appears_in to match the photos you actually took. Every box must show its tag in every photo it appears in."
+  "note": "Real photographs of household objects carrying printed labels from samples/label_sheet.pdf."
 }
