@@ -22,7 +22,14 @@
   .hint { font-size:13px; color:var(--muted); margin-top:8px; }
   .err { background:var(--badbg); color:var(--bad); border-radius:8px; padding:10px 12px; margin-top:12px; white-space:pre-wrap; }
   .status { margin-top:12px; color:var(--muted); }
-  table { width:100%; border-collapse:collapse; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  #table th:nth-child(1), #table td:nth-child(1) { width:34px; }
+  #table th:nth-child(2), #table td:nth-child(2) { width:150px; }
+  #table th:nth-child(3), #table td:nth-child(3) { width:54px; white-space:nowrap; }
+  #table th:nth-child(4), #table td:nth-child(4) { width:124px; }
+  #table th:nth-child(5), #table td:nth-child(5) { width:138px; }
+  .mono { overflow-wrap:anywhere; }
+  td .mono { white-space:nowrap; font-size:11px; }
   th, td { text-align:left; vertical-align:top; padding:10px 8px; border-top:1px solid var(--line); }
   th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border-top:0; }
   .badge { display:inline-block; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:700; white-space:nowrap; }
