@@ -11,6 +11,7 @@ Usage:  python scripts/run_tests.py [fixtures_dir] [--only scenario-b-messy] [--
      "top_level_status": "complete" | "needs_clarification"   (optional)}
   Only keys present in each expected row are compared, so you can assert as little or as
   much as you like per row (status is the minimum).
+- --only PREFIX limits the run: 'scenario-' is the real photographs, 'synthetic' the rendered set.
 - --save writes actual output to <folder>/actual.json for inspection.
 - Exit code is non-zero if any scenario fails.
 """
@@ -68,7 +69,9 @@ def diff_rows(expected: dict, actual: dict) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("fixtures_dir", nargs="?", default=str(Path(__file__).resolve().parent.parent / "fixtures"))
-    ap.add_argument("--only", help="run only folders whose name contains this text")
+    ap.add_argument("--only", metavar="PREFIX",
+                    help="run only folders whose path starts with this, e.g. 'scenario-' for the real "
+                         "photos, 'synthetic' for the rendered ones, 'scenario-b' for one")
     ap.add_argument("--save", action="store_true", help="write actual.json next to each fixture")
     args = ap.parse_args()
 
@@ -81,7 +84,7 @@ def main() -> int:
     root = Path(args.fixtures_dir)
     folders = sorted({p.parent for p in root.rglob("expected.json")} | {p.parent for p in root.rglob("packing_list.pdf")})
     if args.only:
-        folders = [f for f in folders if args.only in str(f.relative_to(root))]
+        folders = [f for f in folders if str(f.relative_to(root)).startswith(args.only)]
     if not folders:
         print(f"No fixture folders found under {root}")
         return 1
