@@ -14,7 +14,7 @@ Requires Python 3.11+ and an Anthropic API key.
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=sk-ant-...
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env   # or export it in your shell
 uvicorn main:app --reload
 ```
 

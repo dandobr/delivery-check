@@ -28,6 +28,24 @@ from pipeline.verify import verify_delivery  # noqa: E402
 PHOTO_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
 
+def load_dotenv() -> None:
+    """Read KEY=value lines from .env at the project root into os.environ, if present.
+
+    Keeps the demo to a single command: no `export` needed before running the harness.
+    Values already in the environment win, so an exported key still overrides the file.
+    """
+    import os
+    env = Path(__file__).resolve().parent.parent / ".env"
+    if not env.exists():
+        return
+    for line in env.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def find_photos(folder: Path) -> list[tuple[str, bytes]]:
     photos = []
     for i in (1, 2, 3):
@@ -71,10 +89,12 @@ def main() -> int:
     ap.add_argument("--save", action="store_true", help="write actual.json next to each fixture")
     args = ap.parse_args()
 
+    load_dotenv()
     import os
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        print("WARNING: ANTHROPIC_API_KEY is not set - the pipeline makes real API calls and will fail unless "
-              "the SDK can find credentials another way (e.g. an `ant auth login` profile).\n")
+        print("WARNING: ANTHROPIC_API_KEY is not set and no .env file was found next to this project.\n"
+              "         The pipeline makes real API calls and will fail unless the SDK can find credentials\n"
+              "         another way. Put ANTHROPIC_API_KEY=sk-ant-... in a .env file, or export it.\n")
 
     root = Path(args.fixtures_dir)
     folders = sorted({p.parent for p in root.rglob("expected.json")} | {p.parent for p in root.rglob("packing_list.pdf")})
