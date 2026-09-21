@@ -4,3 +4,4 @@ __pycache__/
 fixtures/**/actual.json
 .env
 SUBMISSION_FORM.txt
+.DS_Store
