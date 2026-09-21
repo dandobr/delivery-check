@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import io
 import logging
+import re
 
 from PIL import Image, ImageOps
 
@@ -11,6 +12,8 @@ from .cost import CostTracker
 from .llm import VISION_MODEL, call_json
 
 log = logging.getLogger("pipeline.vision")
+
+TAG_RE = re.compile(r"POS[\s\-_]*(\d+)")  # a position tag is only an identity if its number is legible
 
 MAX_EDGE = 1568  # Anthropic's recommended max long edge; larger images are downscaled anyway.
 
@@ -114,11 +117,25 @@ def analyse_photo(photo_id: str, data: bytes, tracker: CostTracker) -> dict:
         tracker=tracker,
         max_tokens=4000,
     )
-    detections = []
+    detections, unreadable_tags = [], []
     for d in result.get("detections", []):
-        tag = (d.get("position_tag") or "").strip().upper().replace(" ", "")
-        if not tag:
+        raw = (d.get("position_tag") or "").strip().upper()
+        m = TAG_RE.search(raw)
+        if not m:
+            # A tag was seen but its number could not be read (e.g. the model returns "POS-?").
+            # It is NOT an object identity: two unreadable tags are not the same object, so it must
+            # never be counted or merged. Keep it as a region to re-photograph.
+            if raw or d.get("bbox"):
+                unreadable_tags.append({
+                    "photo_id": photo_id,
+                    "bbox": _to_fraction_bbox(d.get("bbox"), w, h),
+                    "raw_tag": raw or None,
+                    "name_read": d.get("name_read") or None,
+                    "notes": d.get("notes"),
+                })
+                log.info("%s: tag seen but unreadable (%r) - not counted", photo_id, raw)
             continue
+        tag = f"POS-{int(m.group(1))}"
         readable = bool(d.get("label_readable")) and bool(d.get("sku_read"))
         detections.append({
             "photo_id": photo_id,
@@ -130,5 +147,6 @@ def analyse_photo(photo_id: str, data: bytes, tracker: CostTracker) -> dict:
             "confidence": float(d.get("confidence") or 0.0),
             "notes": d.get("notes"),
         })
-    log.info("%s: %d detections", photo_id, len(detections))
-    return {"photo_id": photo_id, "width": w, "height": h, "detections": detections, "photo_notes": result.get("photo_notes")}
+    log.info("%s: %d detections, %d unreadable tag(s)", photo_id, len(detections), len(unreadable_tags))
+    return {"photo_id": photo_id, "width": w, "height": h, "detections": detections,
+            "unreadable_tags": unreadable_tags, "photo_notes": result.get("photo_notes")}

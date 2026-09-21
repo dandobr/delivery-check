@@ -13,9 +13,10 @@ Real photographs of household objects carrying printed labels from `samples/labe
 
 | Scenario | Expected | Actual | Match | Time | Cost |
 |---|---|---|---|---|---|
-| A normal (3 rows) | confirmed x3 | confirmed, confirmed, confirmed | yes | 7.3 s | $0.0328 |
-| B messy (5 rows) | confirmed, identity mismatch, quantity mismatch, unverified, unverified | confirmed, identity mismatch, quantity mismatch, unverified, unverified | yes | 13.7 s | $0.0461 |
-| C corrected (5 rows) | confirmed x5 | confirmed, confirmed, confirmed, confirmed, confirmed | yes | 5.1 s | $0.0319 |
+| A normal (3 rows) | confirmed x3 | confirmed, confirmed, confirmed | yes | 6.6 s | $0.0328 |
+| B messy (5 rows) | confirmed, identity mismatch, quantity mismatch, unverified, unverified | confirmed, identity mismatch, quantity mismatch, unverified, unverified | yes | 11.2 s | $0.0396 |
+| C corrected (5 rows) | confirmed x5 | confirmed, confirmed, confirmed, confirmed, confirmed | yes | 5.5 s | $0.0333 |
+| D unclear (3 rows) | needs clarification, unverified x3 | needs clarification, unverified x3 | yes | 3.7 s | $0.0094 |
 
 Scenario A also carried one item that is **not** on the packing list (a HEPA filter box). The app did not
 attribute it to any row; it is listed separately as an unexpected SKU. That is the no-false-positive check.
@@ -30,6 +31,11 @@ Scenario B is the hard case, all four difficulties in one delivery:
 | 4 FLT-HEPA-S | present, tag POS-4, label flipped blank-side-up | unverified, asks for a clearer photo of POS-4 |
 | 5 PSU-65W | absent from the delivery | unverified, never "missing" |
 
+Scenario D is the decline-to-conclude case: one box photographed out of focus and too close, so neither
+the position tag number nor the SKU label is legible. The app refuses to conclude anything, marks every row
+unverified, and asks for a focused re-shoot. It does not report a single item as missing, even though two of
+the three ordered items are not in the frame at all.
+
 Synthetic fixtures (rendered images, kept as a cheap deterministic second test set, including the
 decline-to-conclude case):
 
@@ -43,7 +49,7 @@ decline-to-conclude case):
 Harness output, all seven folders:
 
 ```
-7 scenario(s) run, 0 failed
+8 scenario(s) run, 0 failed
 ```
 
 ## What failed
@@ -61,10 +67,22 @@ Found and fixed while building, all visible in the git history:
 4. **The printed tag sheet ran out of tags.** The extra unit in scenario B needed a sixth tag that the sheet
    did not have. The sheet now prints seven, and the vision prompt no longer names a fixed tag range.
 
+5. **An unreadable tag was treated as an object identity.** The blurred photo made the vision model return
+   the placeholder `POS-?`, which it was right to do rather than guess a digit, but the aggregation stage
+   accepted it as a real tag. That would merge two different unidentifiable objects into one and suppress
+   the refusal. Tags are now only identities when their number is legible; illegible ones are reported as
+   regions to re-photograph and never counted. This was caught by the real blurred photo, not by any
+   fixture I had designed.
+
 Not fixed, accepted for this prototype: see "Known limitations" in the README.
 
-Nothing failed on the real photographs. All three scenarios passed on the first live run with no prompt
-changes, including a label photographed blank-side-up and two identical SKUs on different objects.
+Scenarios A, B and C passed on the first live run with no prompt changes, including a label photographed
+blank-side-up and two identical SKUs on different objects. Scenario D failed on its first run and exposed
+defect 5 above.
+
+The vision pass is not deterministic on the blurred photo: on some runs it returns a placeholder tag with a
+bounding box, on others no detection at all and an explanation in its photo notes. Both paths now reach the
+same refusal, which is why the fix targets the aggregation rule rather than the prompt.
 
 ## Time spent
 
@@ -120,18 +138,17 @@ Measured on the real photographs, three photos per delivery, from `usage.total_s
 
 | Scenario | Server processing |
 |---|---|
-| A normal | 7.3 s |
-| B messy | 13.7 s |
-| C corrected | 5.1 s |
-| Average | 8.7 s |
+| A normal | 6.6 s |
+| B messy | 11.2 s |
+| C corrected | 5.5 s |
+| Average of A, B, C | 7.8 s |
 
 Through the hosted demo, scenario B end to end from the browser was 9.1 s against 8.4 s of server
 processing. The free hosting tier sleeps after 15 minutes idle and the first request then takes 30 to 60
 seconds to wake the container; that is a hosting characteristic, not model latency.
 
 The packing-list parse and the per-photo vision calls run concurrently, so wall-clock time tracks the
-slowest photo rather than the sum. The busiest photo in scenario B took 11.6 s because it contained four
-tagged objects.
+slowest photo rather than the sum. The busiest photo in scenario B dominates its wall-clock time because it contains four tagged objects.
 
 ## Measured cost per delivery
 
@@ -145,10 +162,11 @@ anthropic.com/pricing on 2026-09-21:
 
 | Scenario | Calls | Input tokens | Output tokens | Cost |
 |---|---|---|---|---|
-| a-normal | 5 | 12,049 | 987 | $0.0328 |
-| b-messy | 5 | 12,195 | 2,328 | $0.0461 |
-| c-corrected | 4 | 11,217 | 1,110 | $0.0319 |
-| **Average** | | | | **$0.0369** |
+| a-normal | 5 | 12,124 | 981 | $0.0328 |
+| b-messy | 5 | 12,270 | 1,666 | $0.0396 |
+| c-corrected | 4 | 11,292 | 1,231 | $0.0333 |
+| d-unclear (1 photo) | 2 | 4,174 | 228 | $0.0094 |
+| **Average of A, B, C** | | | | **$0.0353** |
 
 So roughly **4 cents per delivery** of three photos and five rows. Cost is dominated by image
 input: each photo costs about 3,500 input tokens regardless of content, so the number of photos drives the

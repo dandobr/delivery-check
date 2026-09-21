@@ -189,7 +189,7 @@ function thumbs(evidence) {
     c.title = `${ev.photo_id} bbox ${ev.bbox.map((v) => v.toFixed(2)).join(', ')}`;
     c.addEventListener('click', () => { drawEvidence($('#lightCanvas'), ev, false); $('#lightbox').style.display = 'flex'; });
     const cap = document.createElement('div'); cap.className = 'cap';
-    cap.textContent = `${ev.photo_id} · ${ev.position_tag || ''}`;
+    cap.textContent = ev.position_tag ? `${ev.photo_id} · ${ev.position_tag}` : ev.photo_id;
     t.append(c, cap); wrap.append(t);
   });
   if (!evidence.length) { wrap.textContent = '—'; wrap.className = 'photo-notes'; }
@@ -232,7 +232,7 @@ function render(data, clientSeconds) {
   const et = $('#extraTable tbody'); et.innerHTML = '';
   ex.forEach((u) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="mono">${esc(u.position_tag)}</td><td>${esc(u.kind.replace('_', ' '))}${u.sku ? ' · ' + esc(u.sku) : ''}</td><td></td><td class="expl">${esc(u.explanation)}</td>`;
+    tr.innerHTML = `<td class="mono">${esc(u.position_tag || '—')}</td><td>${esc(u.kind.replace('_', ' '))}${u.sku ? ' · ' + esc(u.sku) : ''}</td><td></td><td class="expl">${esc(u.explanation)}</td>`;
     tr.children[2].append(thumbs(u.evidence));
     et.append(tr);
   });

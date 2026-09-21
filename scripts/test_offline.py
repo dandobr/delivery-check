@@ -27,8 +27,9 @@ def det(photo, tag, sku, conf=0.9, name=None, notes=None):
             "name_read": name, "bbox": [0.1, 0.1, 0.4, 0.4], "confidence": conf, "notes": notes}
 
 
-def photo(pid, dets):
-    return {"photo_id": pid, "width": 100, "height": 100, "detections": dets, "photo_notes": None}
+def photo(pid, dets, unreadable=()):
+    return {"photo_id": pid, "width": 100, "height": 100, "detections": dets,
+            "unreadable_tags": list(unreadable), "photo_notes": None}
 
 
 def fake_judge(unmatched, rows, tracker):
@@ -90,6 +91,9 @@ def main():
     check("no tags in any photo -> needs clarification, asks for re-shoot", msg is not None and "position tag" in msg.lower())
     check("zero rows parsed -> needs clarification", decide_clarification([], [], []) is not None)
     check("normal input -> no clarification", decide_clarification(ROWS, aggregate(photos), photos) is None)
+    blur = [{"photo_id": "photo1", "bbox": [0.1, 0.1, 0.4, 0.4], "raw_tag": "POS-?", "name_read": None, "notes": "out of focus"}]
+    msg = decide_clarification(ROWS, [], [photo("photo1", [], blur)])
+    check("unreadable tag -> declines and asks for a focused re-shoot", msg is not None and "read" in msg and "focus" in msg)
     import io
     from reportlab.pdfgen import canvas as _c
     buf = io.BytesIO(); c = _c.Canvas(buf); c.showPage(); c.save()   # a PDF with no text at all
@@ -98,6 +102,13 @@ def main():
     except ValueError:
         raised = True
     check("PDF without extractable text is rejected before any API call", raised)
+
+    # --- unreadable position tags are never object identities -------------
+    import pipeline.vision as vision
+    check("POS-? is rejected as a tag", vision.TAG_RE.search("POS-?") is None)
+    check("POS-6 is accepted", (m := vision.TAG_RE.search("POS-6")) is not None and m.group(1) == "6")
+    check("pos 12 (loose spacing) is accepted", (m := vision.TAG_RE.search("POS 12")) is not None and m.group(1) == "12")
+    check("UNKNOWN is rejected", vision.TAG_RE.search("UNKNOWN") is None)
 
     print(f"\n{failures} failure(s)")
     return 1 if failures else 0

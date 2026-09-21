@@ -16,6 +16,10 @@ log = logging.getLogger("pipeline.verify")
 MAX_PHOTOS = 3
 
 
+def _unreadable_regions(photo_results: list[dict]) -> list[dict]:
+    return [u for p in photo_results for u in p.get("unreadable_tags", [])]
+
+
 def decide_clarification(rows: list[dict], objects: list[dict], photo_results: list[dict]) -> str | None:
     """Return a message when the input cannot support any conclusion, else None.
 
@@ -26,10 +30,18 @@ def decide_clarification(rows: list[dict], objects: list[dict], photo_results: l
         return ("The PDF was read but no line items were found. Please upload the packing list itself "
                 "(a one-page text PDF with SKU, description and quantity per line).")
     if not objects:
+        blurred = _unreadable_regions(photo_results)
+        if blurred:
+            where = ", ".join(sorted({u["photo_id"] for u in blurred}))
+            head = (f"{len(blurred)} position tag(s) were spotted in {where} but none could be read, so no item "
+                    "can be identified or counted. Please re-photograph the delivery in focus, close enough "
+                    "that each position tag number and SKU label is legible.")
+        else:
+            head = ("No position tags (POS-1, POS-2, ...) were detected in any photo, so nothing can be counted "
+                    "or matched. Please re-photograph the delivery with each item's position tag and SKU label "
+                    "facing the camera.")
         notes = "; ".join(f"{p['photo_id']}: {p['photo_notes']}" for p in photo_results if p.get("photo_notes"))
-        return ("No position tags (POS-1, POS-2, ...) were detected in any photo, so nothing can be counted "
-                "or matched. Please re-photograph the delivery with each item's position tag and SKU label "
-                "facing the camera." + (f" Model notes: {notes}" if notes else ""))
+        return head + (f" Model notes: {notes}" if notes else "")
     return None
 
 
@@ -55,6 +67,19 @@ def verify_delivery(pdf_bytes: bytes, photos: list[tuple[str, bytes]]) -> dict:
     clarification = decide_clarification(packing["rows"], objects, photo_results)
 
     matched = match(packing["rows"], objects, tracker, [pid for pid, _ in photos])
+
+    # Regions where a tag was visible but illegible are reported, never counted.
+    for u in _unreadable_regions(photo_results):
+        matched["unattributed_objects"].append({
+            "position_tag": None,
+            "kind": "unreadable_tag",
+            "sku": None,
+            "name_read": u.get("name_read"),
+            "evidence": [{"photo_id": u["photo_id"], "bbox": u["bbox"], "position_tag": None}],
+            "explanation": (f"A position tag is visible in {u['photo_id']} but its number cannot be read"
+                            + (f" ({u['notes']})" if u.get("notes") else "")
+                            + ". It is not counted, because an unreadable tag cannot identify an object."),
+        })
 
     summary = tracker.summary()
     summary["total_seconds"] = round(time.perf_counter() - t0, 3)

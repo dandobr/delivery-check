@@ -1,10 +1,16 @@
 {
   "order": "ORD-A-1001",
   "boxes": [
-    {"position_tag": null, "sku_label": "BRK-2200",   "label_obscured": false, "appears_in": ["photo1"], "note": "tag not visible"},
-    {"position_tag": null, "sku_label": "WGT-X100",   "label_obscured": false, "appears_in": ["photo1"], "note": "tag not visible"},
-    {"position_tag": null, "sku_label": "CBL-USB-1M", "label_obscured": false, "appears_in": ["photo1"], "note": "tag not visible"}
+    {
+      "position_tag": null,
+      "sku_label": "unknown (illegible in the photo)",
+      "label_obscured": true,
+      "appears_in": [
+        "photo1"
+      ],
+      "note": "one box from the Order A set, photographed out of focus and too close: a position tag is visible but its number cannot be read, and the SKU label is illegible"
+    }
   ],
   "not_delivered": [],
-  "note": "All three items are physically present but no position tag is visible, so nothing may be counted."
+  "note": "Decline-to-conclude case. The other two Order A items are simply not in the frame. Nothing here may be counted, and no row may be called missing."
 }
